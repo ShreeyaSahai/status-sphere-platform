@@ -3,19 +3,17 @@ import sys
 
 import structlog
 
-from statussphere.core.config import settings
 
-
-def configure_logging() -> None:
+def configure_logging(level: str = "INFO") -> None:
     logging.basicConfig(
-        level=settings.log_level,
         format="%(message)s",
         stream=sys.stdout,
+        level=getattr(logging, level.upper()),
     )
 
     structlog.configure(
         wrapper_class=structlog.make_filtering_bound_logger(
-            logging.getLevelName(settings.log_level)
+            getattr(logging, level.upper())
         ),
         logger_factory=structlog.PrintLoggerFactory(),
     )

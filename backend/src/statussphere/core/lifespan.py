@@ -1,13 +1,14 @@
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
 import structlog
+from fastapi import FastAPI
 
 logger = structlog.get_logger()
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     logger.info("Starting StatusSphere")
 
     yield

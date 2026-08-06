@@ -5,7 +5,7 @@ from statussphere.core.config import settings
 from statussphere.core.lifespan import lifespan
 from statussphere.core.logging import configure_logging
 
-configure_logging()
+configure_logging(settings.log_level)
 
 app = FastAPI(
     title=settings.app_name,
