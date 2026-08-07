@@ -17,7 +17,7 @@ dependencies = [
     # Database
     "sqlalchemy>=2.0.43",
     "alembic>=1.16.5",
-    "psycopg[binary]>=3.2.10",
+    "asyncpg>=0.30.0",
 
     # Validation & Configuration
     "pydantic>=2.11.9",
@@ -71,3 +71,6 @@ quote-style = "double"
 pythonpath = ["src"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/statussphere"]

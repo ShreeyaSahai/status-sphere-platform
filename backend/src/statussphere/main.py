@@ -1,19 +1,16 @@
 from fastapi import FastAPI
 
-from statussphere.api.routes.health import router as health_router
-from statussphere.core.config import settings
-from statussphere.core.lifespan import lifespan
-from statussphere.core.logging import configure_logging
-
-configure_logging(settings.log_level)
+from statussphere.api.router import api_router
 
 app = FastAPI(
-    title=settings.app_name,
-    version="0.1.0",
-    lifespan=lifespan,
+    title="StatusSphere API",
 )
 
-app.include_router(
-    health_router,
-    prefix="/api/v1",
-)
+app.include_router(api_router)
+
+
+@app.get("/health")
+async def health():
+    return {
+        "status": "ok",
+    }

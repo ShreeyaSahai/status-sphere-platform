@@ -13,6 +13,7 @@ sys.path.insert(0, str(SRC_DIR))
 
 from statussphere.core.config import settings
 from statussphere.db.base import Base
+import statussphere.db.models
 
 config = context.config
 
