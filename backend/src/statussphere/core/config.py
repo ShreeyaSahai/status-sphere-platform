@@ -35,6 +35,8 @@ class Settings(BaseSettings):
             f"/{self.database_name}"
         )
 
+    health_check_interval_seconds: int = 30
+
 
 @lru_cache
 def get_settings() -> Settings:

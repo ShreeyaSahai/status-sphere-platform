@@ -1,16 +1,20 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-import structlog
 from fastapi import FastAPI
 
-logger = structlog.get_logger()
+from statussphere.services.scheduler import MonitoringScheduler
 
 
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    logger.info("Starting StatusSphere")
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    monitoring_scheduler = MonitoringScheduler()
 
-    yield
+    monitoring_scheduler.start()
 
-    logger.info("Stopping StatusSphere")
+    app.state.monitoring_scheduler = monitoring_scheduler
+
+    try:
+        yield
+    finally:
+        await monitoring_scheduler.shutdown()
