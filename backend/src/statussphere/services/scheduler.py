@@ -4,6 +4,7 @@ from statussphere.core.config import settings
 from statussphere.db.session import AsyncSessionLocal
 from statussphere.repositories.application import ApplicationRepository
 from statussphere.services.health_check import HealthCheckService
+from statussphere.repositories.health_check import HealthCheckRepository
 
 
 class MonitoringScheduler:
@@ -13,8 +14,10 @@ class MonitoringScheduler:
 
     async def run_health_checks(self) -> None:
         async with AsyncSessionLocal() as session:
-            repository = ApplicationRepository(session)
-            applications = await repository.list()
+            application_repository = ApplicationRepository(session)
+            health_check_repository = HealthCheckRepository(session)
+
+            applications = await application_repository.list()
 
             for application in applications:
                 result = await self.health_check_service.check(
@@ -22,6 +25,11 @@ class MonitoringScheduler:
                     method=application.method,
                     expected_status_code=application.expected_status_code,
                     timeout=application.timeout_seconds,
+                )
+
+                await health_check_repository.create(
+                    application_id=application.id,
+                    result=result,
                 )
 
                 if result.is_healthy:
