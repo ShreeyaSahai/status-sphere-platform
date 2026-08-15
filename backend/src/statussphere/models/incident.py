@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Text
@@ -7,6 +10,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from statussphere.db.base import Base
 from statussphere.models.enums import IncidentStatus
 from statussphere.models.mixins import TimestampMixin, UUIDMixin
+
+if TYPE_CHECKING:
+    from statussphere.models.application import Application
 
 
 class Incident(Base, UUIDMixin, TimestampMixin):
@@ -25,7 +31,7 @@ class Incident(Base, UUIDMixin, TimestampMixin):
         Enum(
             IncidentStatus,
             name="incident_status",
-            ),
+        ),
         default=IncidentStatus.OPEN,
         nullable=False,
         index=True,
@@ -46,6 +52,6 @@ class Incident(Base, UUIDMixin, TimestampMixin):
         nullable=True,
     )
 
-    application: Mapped["Application"] = relationship(
+    application: Mapped[Application] = relationship(
         back_populates="incidents",
     )

@@ -1,7 +1,9 @@
+from uuid import UUID
+
 from statussphere.exceptions import (
+    ApplicationNotFoundError,
     DuplicateApplicationError,
     EnvironmentNotFoundError,
-    ApplicationNotFoundError,
 )
 from statussphere.models.application import Application
 from statussphere.repositories.application import (
@@ -13,7 +15,6 @@ from statussphere.schemas.application import (
 )
 from statussphere.utils.slug import slugify
 
-from uuid import UUID
 
 class ApplicationService:
     def __init__(
@@ -26,9 +27,7 @@ class ApplicationService:
         self,
         payload: ApplicationCreate,
     ) -> Application:
-        environment = await self.repository.get_environment_by_slug(
-            payload.environment_slug
-        )
+        environment = await self.repository.get_environment_by_slug(payload.environment_slug)
 
         if environment is None:
             raise EnvironmentNotFoundError(
@@ -43,9 +42,7 @@ class ApplicationService:
         )
 
         if existing is not None:
-            raise DuplicateApplicationError(
-                f"Application '{payload.name}' already exists."
-            )
+            raise DuplicateApplicationError(f"Application '{payload.name}' already exists.")
 
         application = Application(
             environment_id=environment.id,
@@ -64,36 +61,34 @@ class ApplicationService:
     async def list(self):
         return await self.repository.list()
 
-
     async def update(
-        self,
-        application_id: UUID,
-        payload: ApplicationUpdate,
-    ):
-        application = await self.repository.get_by_id(
-            application_id
-        )
+            self,
+            application_id: UUID,
+            payload: ApplicationUpdate,
+        ):
+
+        application = await self.repository.get_by_id(application_id)
 
         if application is None:
             raise ApplicationNotFoundError()
 
         update_data = payload.model_dump(
             exclude_unset=True,
-        )
+            )
+
+        if "url" in update_data:
+            update_data["url"] = str(update_data["url"])
 
         for field, value in update_data.items():
             setattr(application, field, value)
 
         return await self.repository.save(application)
-    
 
     async def deactivate(
         self,
         application_id: UUID,
     ):
-        application = await self.repository.get_by_id(
-            application_id
-        )
+        application = await self.repository.get_by_id(application_id)
 
         if application is None:
             raise ApplicationNotFoundError()

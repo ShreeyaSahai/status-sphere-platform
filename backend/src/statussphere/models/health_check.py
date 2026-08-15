@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Text, func
@@ -7,6 +10,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from statussphere.db.base import Base
 from statussphere.models.enums import HealthStatus
 from statussphere.models.mixins import UUIDMixin
+
+if TYPE_CHECKING:
+    from statussphere.models.application import Application
 
 
 class HealthCheck(Base, UUIDMixin):
@@ -25,7 +31,7 @@ class HealthCheck(Base, UUIDMixin):
         Enum(
             HealthStatus,
             name="health_status",
-            ),
+        ),
         nullable=False,
         index=True,
     )
@@ -52,6 +58,6 @@ class HealthCheck(Base, UUIDMixin):
         index=True,
     )
 
-    application: Mapped["Application"] = relationship(
+    application: Mapped[Application] = relationship(
         back_populates="health_checks",
     )

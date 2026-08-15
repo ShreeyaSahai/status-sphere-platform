@@ -1,21 +1,23 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from statussphere.db.session import get_db
 from statussphere.exceptions import (
+    ApplicationNotFoundError,
     DuplicateApplicationError,
     EnvironmentNotFoundError,
-    ApplicationNotFoundError,
 )
 from statussphere.repositories.application import ApplicationRepository
+from statussphere.repositories.health_check import HealthCheckRepository
 from statussphere.schemas.application import (
     ApplicationCreate,
     ApplicationResponse,
     ApplicationUpdate,
 )
+from statussphere.schemas.health_check import HealthCheckResponse
 from statussphere.services.application import ApplicationService
-
-from uuid import UUID
 
 router = APIRouter(
     prefix="/applications",
@@ -51,6 +53,7 @@ async def create_application(
             detail=str(exc),
         ) from exc
 
+
 @router.get(
     "",
     response_model=list[ApplicationResponse],
@@ -63,11 +66,11 @@ async def list_applications(
 
     return await service.list()
 
+
 @router.patch(
     "/{application_id}",
     response_model=ApplicationResponse,
 )
-
 async def update_application(
     application_id: UUID,
     payload: ApplicationUpdate,
@@ -86,7 +89,8 @@ async def update_application(
         raise HTTPException(
             status_code=404,
             detail="Application not found.",
-        )
+        ) from None
+
 
 @router.delete(
     "/{application_id}",
@@ -106,4 +110,16 @@ async def delete_application(
         raise HTTPException(
             status_code=404,
             detail="Application not found.",
-        )
+        ) from None
+
+@router.get(
+    "/{application_id}/health-checks",
+    response_model=list[HealthCheckResponse],
+)
+async def list_health_checks(
+    application_id: UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    repository = HealthCheckRepository(db)
+
+    return await repository.list_by_application(application_id)

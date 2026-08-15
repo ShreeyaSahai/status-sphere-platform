@@ -5,7 +5,6 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 from statussphere.models.enums import HttpMethod
 
-
 NonEmptyStr = Annotated[
     str,
     Field(min_length=1, max_length=150),

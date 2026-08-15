@@ -1,11 +1,9 @@
 import asyncio
-import statussphere.db.models
 
 from sqlalchemy import select
 
 from statussphere.db.session import AsyncSessionLocal
 from statussphere.models.environment import Environment
-
 
 DEFAULT_ENVIRONMENTS = [
     ("Development", "development"),
@@ -17,11 +15,7 @@ DEFAULT_ENVIRONMENTS = [
 async def seed_environments() -> None:
     async with AsyncSessionLocal() as session:
         for name, slug in DEFAULT_ENVIRONMENTS:
-            result = await session.execute(
-                select(Environment).where(
-                    Environment.slug == slug
-                )
-            )
+            result = await session.execute(select(Environment).where(Environment.slug == slug))
 
             existing = result.scalar_one_or_none()
 

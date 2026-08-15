@@ -15,11 +15,7 @@ class ApplicationRepository:
         self,
         slug: str,
     ) -> Environment | None:
-        result = await self.session.execute(
-            select(Environment).where(
-                Environment.slug == slug
-            )
-        )
+        result = await self.session.execute(select(Environment).where(Environment.slug == slug))
 
         return result.scalar_one_or_none()
 
@@ -54,13 +50,10 @@ class ApplicationRepository:
         application_id: UUID,
     ) -> Application | None:
         result = await self.session.execute(
-            select(Application).where(
-                Application.id == application_id
-            )
+            select(Application).where(Application.id == application_id)
         )
 
         return result.scalar_one_or_none()
-
 
     async def list(
         self,
@@ -72,7 +65,6 @@ class ApplicationRepository:
         )
 
         return list(result.scalars().all())
-
 
     async def save(
         self,

@@ -11,7 +11,7 @@ class HealthCheckResult:
     is_healthy: bool
     status_code: int | None
     response_time_ms: int
-    error: str |None
+    error: str | None
 
 
 class HealthCheckService:
@@ -52,12 +52,18 @@ class HealthCheckService:
         except httpx.HTTPError as exc:
             elapsed = int((perf_counter() - start) * 1000)
 
+            if isinstance(exc, httpx.TimeoutException):
+                error = f"Request timed out after {timeout} seconds"
+            else:
+                error = str(exc) or type(exc).__name__
+
             return HealthCheckResult(
                 is_healthy=False,
                 status_code=None,
                 response_time_ms=elapsed,
-                error=str(exc),
+                error=error,
             )
+
 
     async def close(self):
         await self.client.aclose()

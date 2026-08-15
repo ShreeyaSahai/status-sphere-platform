@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 from sqlalchemy import (
@@ -14,6 +17,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from statussphere.db.base import Base
 from statussphere.models.enums import HttpMethod
 from statussphere.models.mixins import TimestampMixin, UUIDMixin
+
+if TYPE_CHECKING:
+    from statussphere.models.environment import Environment
+    from statussphere.models.health_check import HealthCheck
+    from statussphere.models.incident import Incident
 
 
 class Application(Base, UUIDMixin, TimestampMixin):
@@ -88,17 +96,17 @@ class Application(Base, UUIDMixin, TimestampMixin):
         index=True,
     )
 
-    environment: Mapped["Environment"] = relationship(
+    environment: Mapped[Environment] = relationship(
         back_populates="applications",
     )
 
-    health_checks: Mapped[list["HealthCheck"]] = relationship(
+    health_checks: Mapped[list[HealthCheck]] = relationship(
         back_populates="application",
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
 
-    incidents: Mapped[list["Incident"]] = relationship(
+    incidents: Mapped[list[Incident]] = relationship(
         back_populates="application",
         cascade="all, delete-orphan",
         passive_deletes=True,
