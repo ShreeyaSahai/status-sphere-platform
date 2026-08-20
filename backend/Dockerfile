@@ -14,19 +14,10 @@ RUN uv sync --frozen --no-install-project
 COPY src ./src
 COPY migrations ./migrations
 COPY alembic.ini .
-COPY .env .
+
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
 
 EXPOSE 8000
 
-CMD [
-    "uv",
-    "run",
-    "uvicorn",
-    "statussphere.main:app",
-    "--host",
-    "0.0.0.0",
-    "--port",
-    "8000",
-    "--app-dir",
-    "src"
-]
+ENTRYPOINT ["./entrypoint.sh"]
