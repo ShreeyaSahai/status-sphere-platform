@@ -7,7 +7,8 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir uv "setuptools>=78.1.1"
+RUN pip install --no-cache-dir --upgrade pip "setuptools>=78.1.1" uv \
+    && rm -rf /usr/local/lib/python3.14/ensurepip/_bundled
 
 COPY pyproject.toml uv.lock ./
 
