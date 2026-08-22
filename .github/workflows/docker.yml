@@ -44,6 +44,8 @@ jobs:
         with:
           context: ./backend
           load: true
+          provenance: false
+          sbom: false
           tags: statussphere-backend:${{ github.sha }}
 
       - name: Debug - inspect backend image packages
@@ -102,6 +104,8 @@ jobs:
         with:
           context: ./frontend
           load: true
+          provenance: false
+          sbom: false
           tags: statussphere-frontend:${{ github.sha }}
 
       - name: Scan frontend image with Trivy
