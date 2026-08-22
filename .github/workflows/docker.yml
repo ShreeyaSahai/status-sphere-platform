@@ -46,6 +46,15 @@ jobs:
           load: true
           tags: statussphere-backend:${{ github.sha }}
 
+      - name: Debug - inspect backend image packages
+        if: always()
+        run: |
+          docker run --rm --entrypoint sh statussphere-backend:${{ github.sha }} -c \
+            "echo '--- pip show setuptools ---'; pip show setuptools; \
+             echo '--- pip show msgpack ---'; pip show msgpack; \
+             echo '--- filesystem search ---'; \
+             find / \( -iname '*setuptools*' -o -iname '*msgpack*' \) -not -path '/proc/*' 2>/dev/null"
+
       - name: Scan backend image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
