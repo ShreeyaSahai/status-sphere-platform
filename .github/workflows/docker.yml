@@ -11,6 +11,7 @@ on:
 permissions:
   contents: read
   packages: write
+  security-events: write
 
 jobs:
   build-and-push:
@@ -54,6 +55,23 @@ jobs:
           ignore-unfixed: true
           severity: CRITICAL,HIGH
 
+      - name: Generate Trivy SARIF for backend
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: statussphere-backend:${{ github.sha }}
+          format: sarif
+          output: trivy-backend.sarif
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      - name: Upload backend SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend
+
       - name: Push backend image
         run: |
           docker tag statussphere-backend:${{ github.sha }} \
@@ -84,6 +102,23 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+
+      - name: Generate Trivy SARIF for frontend
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: statussphere-frontend:${{ github.sha }}
+          format: sarif
+          output: trivy-frontend.sarif
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+
+      - name: Upload frontend SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-frontend.sarif
+          category: trivy-frontend
 
       - name: Push frontend image
         run: |
