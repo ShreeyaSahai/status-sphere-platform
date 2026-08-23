@@ -44,7 +44,7 @@ jobs:
       - name: Debug - Trivy raw package list
         run: |
           docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasecurity/trivy:0.70.0 image \
+            aquasec/trivy:0.70.0 image \
             --format json \
             --list-all-pkgs \
             statussphere-backend:${{ github.sha }} \
