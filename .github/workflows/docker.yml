@@ -40,10 +40,20 @@ jobs:
             --sbom=false \
             -t statussphere-backend:${{ github.sha }} \
             ./backend
-      
-      - name: Debug - Trivy help for SBOM/referrer options
+
+      - name: Debug - Trivy without SBOM sources
         run: |
-          docker run --rm aquasec/trivy:0.70.0 image --help | grep -i -A 2 'sbom\|referrer\|attest'
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.70.0 image \
+            --sbom-sources= \
+            --format json \
+            --list-all-pkgs \
+            statussphere-backend:${{ github.sha }} \
+            > trivy-nosbom.json
+          echo "--- setuptools entries ---"
+          grep -A 5 '"Name": "setuptools"' trivy-nosbom.json || echo "not found"
+          echo "--- msgpack entries ---"
+          grep -A 5 '"Name": "msgpack"' trivy-nosbom.json || echo "not found"
 
       - name: Scan backend image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
@@ -54,7 +64,7 @@ jobs:
           ignore-unfixed: true
           severity: CRITICAL,HIGH
         env:
-          TRIVY_DISABLE_SBOM: "true"
+          TRIVY_SBOM_SOURCES: ""
 
       - name: Generate Trivy SARIF for backend
         if: always()
@@ -66,7 +76,7 @@ jobs:
           ignore-unfixed: true
           severity: CRITICAL,HIGH
         env:
-          TRIVY_DISABLE_SBOM: "true"
+          TRIVY_SBOM_SOURCES: ""
 
       - name: Upload backend SARIF to GitHub Security tab
         if: always()
@@ -122,7 +132,7 @@ jobs:
           ignore-unfixed: true
           severity: CRITICAL,HIGH
         env:
-          TRIVY_DISABLE_SBOM: "true"
+          TRIVY_SBOM_SOURCES: ""
 
       - name: Generate Trivy SARIF for frontend
         if: always()
@@ -134,7 +144,7 @@ jobs:
           ignore-unfixed: true
           severity: CRITICAL,HIGH
         env:
-          TRIVY_DISABLE_SBOM: "true"
+          TRIVY_SBOM_SOURCES: ""
 
       - name: Upload frontend SARIF to GitHub Security tab
         if: always()
