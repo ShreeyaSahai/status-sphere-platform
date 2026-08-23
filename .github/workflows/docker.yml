@@ -35,22 +35,25 @@ jobs:
       - name: Build backend image
         run: |
           docker buildx build \
-            --no-cache \
             --load \
             --provenance=false \
             --sbom=false \
             -t statussphere-backend:${{ github.sha }} \
             ./backend
 
-      - name: Debug - Find SBOM file inside layer
+      - name: Debug - Trivy skipping pip vendored SBOM
         run: |
-          docker save statussphere-backend:${{ github.sha }} -o backend.tar
-          mkdir extracted
-          tar -xf backend.tar -C extracted
-          mkdir layer
-          tar -xf extracted/blobs/sha256/d79eaeea9bcf9ff9bb8dbb5db0dedc7dffc17c9fa4e1fccf1d45513a95c857cc -C layer
-          echo "--- searching layer contents for the string ---"
-          grep -rl "setuptools@70.3.0" layer || echo "not found"
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.70.0 image \
+            --skip-files /usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json \
+            --format json \
+            --list-all-pkgs \
+            statussphere-backend:${{ github.sha }} \
+            > trivy-fixed.json
+          echo "--- setuptools entries ---"
+          grep -A 5 '"Name": "setuptools"' trivy-fixed.json || echo "not found"
+          echo "--- msgpack entries ---"
+          grep -A 5 '"Name": "msgpack"' trivy-fixed.json || echo "not found"
 
       - name: Scan backend image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
@@ -60,8 +63,7 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
           severity: CRITICAL,HIGH
-        env:
-          TRIVY_SBOM_SOURCES: ""
+          skip-files: /usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json
 
       - name: Generate Trivy SARIF for backend
         if: always()
@@ -72,8 +74,7 @@ jobs:
           output: trivy-backend.sarif
           ignore-unfixed: true
           severity: CRITICAL,HIGH
-        env:
-          TRIVY_SBOM_SOURCES: ""
+          skip-files: /usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json
 
       - name: Upload backend SARIF to GitHub Security tab
         if: always()
@@ -128,8 +129,7 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
           severity: CRITICAL,HIGH
-        env:
-          TRIVY_SBOM_SOURCES: ""
+          skip-files: /usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json
 
       - name: Generate Trivy SARIF for frontend
         if: always()
@@ -140,8 +140,7 @@ jobs:
           output: trivy-frontend.sarif
           ignore-unfixed: true
           severity: CRITICAL,HIGH
-        env:
-          TRIVY_SBOM_SOURCES: ""
+          skip-files: /usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json
 
       - name: Upload frontend SARIF to GitHub Security tab
         if: always()
