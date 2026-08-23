@@ -40,6 +40,19 @@ jobs:
             --sbom=false \
             -t statussphere-backend:${{ github.sha }} \
             ./backend
+      
+      - name: Debug - Trivy raw package list
+        run: |
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasecurity/trivy:0.70.0 image \
+            --format json \
+            --list-all-pkgs \
+            statussphere-backend:${{ github.sha }} \
+            > trivy-raw.json
+          echo "--- setuptools entries ---"
+          grep -A 5 '"Name": "setuptools"' trivy-raw.json || echo "not found"
+          echo "--- msgpack entries ---"
+          grep -A 5 '"Name": "msgpack"' trivy-raw.json || echo "not found"
 
       - name: Scan backend image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
