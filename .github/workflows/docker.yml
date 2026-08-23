@@ -41,18 +41,9 @@ jobs:
             -t statussphere-backend:${{ github.sha }} \
             ./backend
       
-      - name: Debug - Trivy raw package list
+      - name: Debug - Trivy help for SBOM/referrer options
         run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:0.70.0 image \
-            --format json \
-            --list-all-pkgs \
-            statussphere-backend:${{ github.sha }} \
-            > trivy-raw.json
-          echo "--- setuptools entries ---"
-          grep -A 5 '"Name": "setuptools"' trivy-raw.json || echo "not found"
-          echo "--- msgpack entries ---"
-          grep -A 5 '"Name": "msgpack"' trivy-raw.json || echo "not found"
+          docker run --rm aquasec/trivy:0.70.0 image --help | grep -i -A 2 'sbom\|referrer\|attest'
 
       - name: Scan backend image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
