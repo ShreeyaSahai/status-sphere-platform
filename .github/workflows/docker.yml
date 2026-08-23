@@ -42,17 +42,15 @@ jobs:
             -t statussphere-backend:${{ github.sha }} \
             ./backend
 
-      - name: Debug - Inspect tarball contents
+      - name: Debug - Find SBOM file inside layer
         run: |
           docker save statussphere-backend:${{ github.sha }} -o backend.tar
           mkdir extracted
           tar -xf backend.tar -C extracted
-          echo "--- top-level tar contents ---"
-          ls -la extracted
-          echo "--- manifest.json ---"
-          cat extracted/manifest.json
-          echo "--- searching all files for setuptools@70.3.0 ---"
-          grep -rl "setuptools@70.3.0" extracted || echo "not found in any file"
+          mkdir layer
+          tar -xf extracted/blobs/sha256/d79eaeea9bcf9ff9bb8dbb5db0dedc7dffc17c9fa4e1fccf1d45513a95c857cc -C layer
+          echo "--- searching layer contents for the string ---"
+          grep -rl "setuptools@70.3.0" layer || echo "not found"
 
       - name: Scan backend image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
