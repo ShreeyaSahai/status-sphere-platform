@@ -41,20 +41,6 @@ jobs:
             -t statussphere-backend:${{ github.sha }} \
             ./backend
 
-      - name: Debug - Trivy skipping pip vendored SBOM
-        run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:0.70.0 image \
-            --skip-files /usr/local/lib/python3.14/site-packages/pip/_vendor/bom.cdx.json \
-            --format json \
-            --list-all-pkgs \
-            statussphere-backend:${{ github.sha }} \
-            > trivy-fixed.json
-          echo "--- setuptools entries ---"
-          grep -A 5 '"Name": "setuptools"' trivy-fixed.json || echo "not found"
-          echo "--- msgpack entries ---"
-          grep -A 5 '"Name": "msgpack"' trivy-fixed.json || echo "not found"
-
       - name: Scan backend image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
