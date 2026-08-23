@@ -14,12 +14,10 @@ permissions:
   security-events: write
 
 jobs:
-  build-and-push:
-    name: Build, Scan and Push Docker Images
+  build-and-push-backend:
+    name: Build, Scan and Push Backend
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    env:
-      DOCKER_BUILDKIT: "0"
 
     steps:
       - name: Checkout
@@ -34,10 +32,6 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # -------------------------
-      # Backend
-      # -------------------------
-
       - name: Build backend image
         run: docker build -t statussphere-backend:${{ github.sha }} ./backend
 
@@ -49,6 +43,8 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+        env:
+          TRIVY_DISABLE_SBOM: "true"
 
       - name: Generate Trivy SARIF for backend
         if: always()
@@ -78,16 +74,28 @@ jobs:
           docker push ghcr.io/shreeyasahai/status-sphere-platform-backend:latest
           docker push ghcr.io/shreeyasahai/status-sphere-platform-backend:${{ github.sha }}
 
-      # -------------------------
-      # Frontend
-      # -------------------------
+  build-and-push-frontend:
+    name: Build, Scan and Push Frontend
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build frontend image
-        if: always()
         run: docker build -t statussphere-frontend:${{ github.sha }} ./frontend
 
       - name: Scan frontend image with Trivy
-        if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: statussphere-frontend:${{ github.sha }}
@@ -95,6 +103,8 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+        env:
+          TRIVY_DISABLE_SBOM: "true"
 
       - name: Generate Trivy SARIF for frontend
         if: always()
