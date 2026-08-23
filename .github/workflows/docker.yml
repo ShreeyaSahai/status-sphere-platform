@@ -35,6 +35,7 @@ jobs:
       - name: Build backend image
         run: |
           docker buildx build \
+            --no-cache \
             --load \
             --provenance=false \
             --sbom=false \
