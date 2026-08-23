@@ -41,19 +41,19 @@ jobs:
             -t statussphere-backend:${{ github.sha }} \
             ./backend
 
-      - name: Debug - Trivy without SBOM sources
+      - name: Debug - Trivy against exported tarball
         run: |
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          docker save statussphere-backend:${{ github.sha }} -o backend.tar
+          docker run --rm -v $PWD:/work \
             aquasec/trivy:0.70.0 image \
-            --sbom-sources= \
+            --input /work/backend.tar \
             --format json \
             --list-all-pkgs \
-            statussphere-backend:${{ github.sha }} \
-            > trivy-nosbom.json
+            > trivy-tar.json
           echo "--- setuptools entries ---"
-          grep -A 5 '"Name": "setuptools"' trivy-nosbom.json || echo "not found"
+          grep -A 5 '"Name": "setuptools"' trivy-tar.json || echo "not found"
           echo "--- msgpack entries ---"
-          grep -A 5 '"Name": "msgpack"' trivy-nosbom.json || echo "not found"
+          grep -A 5 '"Name": "msgpack"' trivy-tar.json || echo "not found"
 
       - name: Scan backend image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
