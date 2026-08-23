@@ -33,7 +33,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build backend image
-        run: docker build -t statussphere-backend:${{ github.sha }} ./backend
+        run: |
+          docker buildx build \
+            --load \
+            --provenance=false \
+            --sbom=false \
+            -t statussphere-backend:${{ github.sha }} \
+            ./backend
 
       - name: Scan backend image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
@@ -55,6 +61,8 @@ jobs:
           output: trivy-backend.sarif
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+        env:
+          TRIVY_DISABLE_SBOM: "true"
 
       - name: Upload backend SARIF to GitHub Security tab
         if: always()
@@ -93,7 +101,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build frontend image
-        run: docker build -t statussphere-frontend:${{ github.sha }} ./frontend
+        run: |
+          docker buildx build \
+            --load \
+            --provenance=false \
+            --sbom=false \
+            -t statussphere-frontend:${{ github.sha }} \
+            ./frontend
 
       - name: Scan frontend image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
@@ -115,6 +129,8 @@ jobs:
           output: trivy-frontend.sarif
           ignore-unfixed: true
           severity: CRITICAL,HIGH
+        env:
+          TRIVY_DISABLE_SBOM: "true"
 
       - name: Upload frontend SARIF to GitHub Security tab
         if: always()
