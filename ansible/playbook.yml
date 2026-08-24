@@ -1,0 +1,56 @@
+---
+- name: Bootstrap StatusSphere EC2 host with k3s
+  hosts: statussphere
+  become: true
+
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+
+    - name: Install prerequisite packages
+      apt:
+        name:
+          - curl
+          - ca-certificates
+        state: present
+
+    - name: Check if k3s is already installed
+      stat:
+        path: /usr/local/bin/k3s
+      register: k3s_binary
+
+    - name: Install k3s
+      shell: >
+        curl -sfL https://get.k3s.io |
+        INSTALL_K3S_EXEC="--tls-san {{ ansible_host }}" sh -
+      when: not k3s_binary.stat.exists
+
+    - name: Wait for k3s node to be Ready
+      shell: kubectl get nodes --no-headers
+      register: node_status
+      until: "'Ready' in node_status.stdout"
+      retries: 10
+      delay: 6
+      changed_when: false
+
+    - name: Fetch k3s kubeconfig content
+      slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: kubeconfig_raw
+
+    - name: Save kubeconfig locally with correct server address
+      delegate_to: localhost
+      become: false
+      copy:
+        content: >-
+          {{ (kubeconfig_raw.content | b64decode)
+             | replace('127.0.0.1', ansible_host)
+             | replace('localhost', ansible_host) }}
+        dest: "{{ playbook_dir }}/../kubeconfig-statussphere.yaml"
+        mode: "0600"
