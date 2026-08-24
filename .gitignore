@@ -28,3 +28,7 @@ Thumbs.db
 
 # Kubernetes
 *.secret.yaml
+
+# Ansible / secrets
+kubeconfig-statussphere.yaml
+ansible/*.retry
