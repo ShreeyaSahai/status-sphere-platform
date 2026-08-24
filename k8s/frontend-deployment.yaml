@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: statussphere-frontend
+  namespace: statussphere
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: statussphere-frontend
+  template:
+    metadata:
+      labels:
+        app: statussphere-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: ghcr.io/shreeyasahai/status-sphere-platform-frontend:latest
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: statussphere-frontend
+  namespace: statussphere
+spec:
+  selector:
+    app: statussphere-frontend
+  ports:
+    - port: 80
+      targetPort: 80

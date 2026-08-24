@@ -1,0 +1,30 @@
+namespace: statussphere
+
+backend:
+  image:
+    repository: ghcr.io/shreeyasahai/status-sphere-platform-backend
+    tag: latest
+  replicas: 1
+  port: 8000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  secretName: statussphere-db-credentials
+
+frontend:
+  image:
+    repository: ghcr.io/shreeyasahai/status-sphere-platform-frontend
+    tag: latest
+  replicas: 1
+  port: 80
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 250m
+      memory: 128Mi
