@@ -1,0 +1,45 @@
+# Standalone grafana/grafana chart - deliberately NOT kube-prometheus-stack's
+# bundled Grafana, per the incident where the full bundle exhausted memory
+# on this t3.small box. Install with --atomic --timeout 5m so a failed
+# install auto-rolls-back instead of leaving orphaned resources.
+
+replicas: 1
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClassName: local-path
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 96Mi
+  limits:
+    cpu: 200m
+    memory: 192Mi
+
+# Skip the chart's bundled sidecars for dashboard/datasource auto-loading
+# from ConfigMaps unless you actually plan to use that pattern - they're
+# separate containers that each add their own memory footprint.
+sidecar:
+  dashboards:
+    enabled: false
+  datasources:
+    enabled: false
+
+# Provision the Prometheus datasource directly instead, no sidecar needed.
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-server.monitoring.svc.cluster.local
+        access: proxy
+        isDefault: true
+
+service:
+  type: ClusterIP
+
+admin:
+  existingSecret: ""
