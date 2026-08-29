@@ -13,28 +13,23 @@ dependencies = [
     # Web Framework
     "fastapi>=0.118.0",
     "uvicorn[standard]>=0.37.0",
-
     # Database
     "sqlalchemy>=2.0.43",
     "alembic>=1.16.5",
     "asyncpg>=0.30.0",
-
     # Validation & Configuration
     "pydantic>=2.11.9",
     "pydantic-settings>=2.11.0",
     "python-dotenv>=1.1.1",
-
     # HTTP Client
     "httpx>=0.28.1",
-
     # Scheduler
     "apscheduler>=3.11.0",
-
     # Logging
     "structlog>=25.4.0",
-
     # Metrics
     "prometheus-client>=0.23.1",
+    "prometheus-fastapi-instrumentator>=8.1.0",
 ]
 
 [dependency-groups]

@@ -10,6 +10,11 @@ from statussphere.repositories.application import ApplicationRepository
 from statussphere.repositories.health_check import HealthCheckRepository
 from statussphere.repositories.incident import IncidentRepository
 from statussphere.services.health_check import HealthCheckService
+from statussphere.core.metrics import (
+    health_checks_total,
+    incidents_created_total,
+    incidents_resolved_total,
+)
 
 
 class MonitoringScheduler:
@@ -39,6 +44,52 @@ class MonitoringScheduler:
                 )
 
                 open_incident = await incident_repository.get_open_by_application(application.id)
+
+                if result.is_healthy:
+                    health_checks_total.labels(
+                        application=application.name, status="ok"
+                    ).inc()
+
+                    if open_incident is not None:
+                        await incident_repository.resolve(open_incident)
+                        incidents_resolved_total.labels(application=application.name).inc()
+
+                        print(f"[Incident] ✓ Resolved {application.name}")
+
+                    print(
+                        f"[HealthCheck] ✓ {application.name} "
+                        f"{result.status_code} "
+                        f"{result.response_time_ms}ms"
+                    )
+
+                else:
+                    health_checks_total.labels(
+                        application=application.name, status="failed"
+                    ).inc()
+
+                    if open_incident is None:
+                        incident = Incident(
+                            application_id=application.id,
+                            status=IncidentStatus.OPEN,
+                            reason=(
+                                result.error
+                                or f"Expected HTTP {application.expected_status_code}, "
+                                f"received {result.status_code}"
+                            ),
+                            started_at=datetime.now(UTC),
+                        )
+
+                        await incident_repository.create(incident)
+                        incidents_created_total.labels(application=application.name).inc()
+
+                        print(f"[Incident] ✗ Created {application.name}: {incident.reason}")
+
+                    print(
+                        f"[HealthCheck] ✗ {application.name} "
+                        f"{result.status_code} "
+                        f"{result.response_time_ms}ms "
+                        f"{result.error or ''}"
+                    )
 
                 if result.is_healthy:
                     if open_incident is not None:
