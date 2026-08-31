@@ -50,11 +50,11 @@ jobs:
             set -euo pipefail
             export KUBECONFIG=/home/ubuntu/.kube/config
 
-            echo "Rolling out backend to \$SHA..."
+            echo "Rolling out backend to ${SHA}..."
             kubectl -n statussphere set image deployment/statussphere-backend \
               backend=ghcr.io/shreeyasahai/status-sphere-platform-backend:${SHA}
 
-            echo "Rolling out frontend to \$SHA..."
+            echo "Rolling out frontend to $SHA..."
             kubectl -n statussphere set image deployment/statussphere-frontend \
               frontend=ghcr.io/shreeyasahai/status-sphere-platform-frontend:${SHA}
 
