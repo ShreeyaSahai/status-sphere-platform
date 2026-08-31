@@ -14,13 +14,78 @@ jobs:
   deploy:
     name: Deploy to Server
     runs-on: ubuntu-latest
-
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Deploy
+      - name: Get this runner's public IP
+        id: runner_ip
+        run: echo "ip=$(curl -s https://checkip.amazonaws.com)" >> "$GITHUB_OUTPUT"
+
+      - name: Temporarily authorize this runner's IP for SSH
         run: |
-          echo "Deployment will happen here"
+          aws ec2 authorize-security-group-ingress \
+            --group-id "${{ secrets.STATUSSPHERE_SG_ID }}" \
+            --protocol tcp --port 22 \
+            --cidr "${{ steps.runner_ip.outputs.ip }}/32"
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STATUSSPHERE_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.STATUSSPHERE_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Roll out new images
+        env:
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.STATUSSPHERE_HOST }} bash -s <<EOF
+            set -euo pipefail
+            export KUBECONFIG=/home/ubuntu/.kube/config
+
+            echo "Rolling out backend to \$SHA..."
+            kubectl -n statussphere set image deployment/statussphere-backend \
+              backend=ghcr.io/shreeyasahai/status-sphere-platform-backend:${SHA}
+
+            echo "Rolling out frontend to \$SHA..."
+            kubectl -n statussphere set image deployment/statussphere-frontend \
+              frontend=ghcr.io/shreeyasahai/status-sphere-platform-frontend:${SHA}
+
+            echo "Waiting for backend rollout (this also confirms /health passes readiness)..."
+            kubectl -n statussphere rollout status deployment/statussphere-backend --timeout=180s
+
+            echo "Waiting for frontend rollout..."
+            kubectl -n statussphere rollout status deployment/statussphere-frontend --timeout=180s
+
+            echo "Deploy complete:"
+            kubectl -n statussphere get pods -o wide
+          EOF
+
+      - name: Roll back on failure
+        if: failure()
+        run: |
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.STATUSSPHERE_HOST }} bash -s << 'EOF'
+            set -euo pipefail
+            export KUBECONFIG=/home/ubuntu/.kube/config
+
+            echo "Deploy failed - rolling both deployments back to previous revision"
+            kubectl -n statussphere rollout undo deployment/statussphere-backend
+            kubectl -n statussphere rollout undo deployment/statussphere-frontend
+            kubectl -n statussphere rollout status deployment/statussphere-backend --timeout=120s
+            kubectl -n statussphere rollout status deployment/statussphere-frontend --timeout=120s
+          EOF
+
+      - name: Revoke the runner's temporary SSH access
+        if: always()
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id "${{ secrets.STATUSSPHERE_SG_ID }}" \
+            --protocol tcp --port 22 \
+            --cidr "${{ steps.runner_ip.outputs.ip }}/32" || true
