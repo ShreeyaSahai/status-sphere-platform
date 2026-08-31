@@ -1,23 +1,19 @@
 server:
-  retention: "2d"
+  retention: "1d"
   resources:
     requests:
       cpu: 50m
-      memory: 128Mi
+      memory: 192Mi
     limits:
       cpu: 200m
-      memory: 256Mi
+      memory: 384Mi
   persistentVolume:
     enabled: false
-
 alertmanager:
   enabled: false
-
 kube-state-metrics:
   enabled: false
-
 prometheus-node-exporter:
   enabled: false
-
 pushgateway:
   enabled: false

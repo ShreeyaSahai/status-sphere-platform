@@ -24,13 +24,15 @@ spec:
               port: {{ .Values.frontend.port }}
             initialDelaySeconds: 5
             periodSeconds: 10
-            failureThreshold: 3
+            timeoutSeconds: 5
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /
               port: {{ .Values.frontend.port }}
             initialDelaySeconds: 15
             periodSeconds: 15
-            failureThreshold: 3
+            timeoutSeconds: 5
+            failureThreshold: 6
           resources:
             {{- toYaml .Values.frontend.resources | nindent 12 }}

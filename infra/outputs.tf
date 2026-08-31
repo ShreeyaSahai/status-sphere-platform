@@ -18,3 +18,8 @@ output "db_password" {
   value       = random_password.db_password.result
   sensitive   = true
 }
+
+output "security_group_id" {
+  description = "Security group ID - needed by deploy.yml to temporarily authorize the GitHub Actions runner's IP for SSH during deploys"
+  value       = aws_security_group.statussphere.id
+}
