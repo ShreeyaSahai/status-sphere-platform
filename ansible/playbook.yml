@@ -1,4 +1,3 @@
----
 - name: Bootstrap StatusSphere EC2 host with k3s
   hosts: statussphere
   become: true
@@ -38,6 +37,23 @@
       retries: 10
       delay: 6
       changed_when: false
+
+    - name: Ensure ubuntu user's .kube directory exists on the host
+      file:
+        path: /home/ubuntu/.kube
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0700"
+
+    - name: Copy k3s kubeconfig to ubuntu user's kube config on the host
+      copy:
+        src: /etc/rancher/k3s/k3s.yaml
+        dest: /home/ubuntu/.kube/config
+        remote_src: true
+        owner: ubuntu
+        group: ubuntu
+        mode: "0600"
 
     - name: Fetch k3s kubeconfig content
       slurp:
