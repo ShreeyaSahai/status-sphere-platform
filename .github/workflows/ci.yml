@@ -16,6 +16,13 @@ jobs:
     defaults:
       run:
         working-directory: backend
+        
+    env:
+      DATABASE_HOST: localhost
+      DATABASE_PORT: "5432"
+      DATABASE_NAME: test
+      DATABASE_USER: test
+      DATABASE_PASSWORD: test
 
     steps:
       - name: Checkout
