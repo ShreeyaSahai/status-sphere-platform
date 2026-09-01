@@ -4,7 +4,11 @@
 
 StatusSphere monitors application health, uptime, latency, and incidents through a FastAPI backend and React dashboard.
 
-The project also demonstrates an end-to-end Cloud & DevOps workflow covering CI, container security, AWS infrastructure, configuration management, and Kubernetes deployment.
+The project demonstrates an end-to-end Cloud & DevOps workflow covering CI/CD, container security, AWS infrastructure, Kubernetes, observability, and automated deployment.
+
+🌐 **Live Demo:** [http://54.156.160.127/](http://54.156.160.127/)
+
+> The demo currently runs over HTTP, so browsers may display a "Not Secure" warning.
 
 ---
 
@@ -13,49 +17,66 @@ The project also demonstrates an end-to-end Cloud & DevOps workflow covering CI,
 * **Scheduled asynchronous application health checks**
 * **Uptime and latency tracking**
 * **Incident detection and management**
+* **Shareable workspace dashboards**
 * **FastAPI REST APIs**
 * **React + TypeScript monitoring dashboard**
 * **PostgreSQL persistence**
 * **Dockerized frontend and backend**
 * **Kubernetes-based cloud deployment**
 * **Infrastructure provisioned with Terraform**
-* **EC2 configuration and k3s setup with Ansible**
+* **EC2 and k3s configuration with Ansible**
 * **Helm-based Kubernetes deployments**
+* **Prometheus metrics and Grafana dashboards**
+* **Loki log aggregation**
+* **Automated image deployment with GitHub Actions**
+* **Trivy container vulnerability scanning**
+
+---
+
+## 🌐 Try the Live Demo
+
+Open: **[http://54.156.160.127/](http://54.156.160.127/)**
+
+Click **Create your dashboard** to create a unique workspace.
+
+Each workspace has a shareable URL: `/w/<workspace-id>`
+
+You can create an application inside your workspace and StatusSphere will periodically monitor it.
 
 ---
 
 ## 🏗️ Architecture
 
-```
-                         ┌──────────────┐
-                         │    Browser   │
-                         └──────┬───────┘
-                                │
-                                ▼
+```text
+                        ┌──────────────┐
+                        │   Browser    │
+                        └──────┬───────┘
+                               │
+                               ▼
                        ┌─────────────────┐
-                       │ Nginx / React   │
-                       │    Frontend     │
+                       │ Traefik / Nginx │
+                       │ React Frontend  │
                        └────────┬────────┘
-                                │
-                                ▼
+                               │
+                               ▼
                        ┌─────────────────┐
                        │ FastAPI Backend │
-                       │ Health Checks   │
                        │ REST API        │
+                       │ Health Checks   │
+                       │ Metrics         │
                        └────────┬────────┘
-                                │
-                                ▼
+                               │
+                               ▼
                        ┌─────────────────┐
                        │ PostgreSQL / RDS│
                        └─────────────────┘
 
-                         AWS EC2
-                    ┌──────────────────┐
-                    │       k3s        │
-                    │    Kubernetes    │
-                    │                  │
-                    │ Backend + Frontend│
-                    └──────────────────┘
+                            AWS EC2
+                       ┌──────────────────┐
+                       │       k3s        │
+                       │    Kubernetes    │
+                       │ Backend + Frontend│
+                       └──────────────────┘
 ```
 
 Terraform provisions the AWS infrastructure, Ansible configures the EC2 host and k3s cluster, and Helm manages the Kubernetes application deployment.
@@ -64,7 +85,7 @@ Terraform provisions the AWS infrastructure, Ansible configures the EC2 host and
 
 ## 🔄 DevOps Pipeline
 
-```
+```text
 Git Push
    │
    ▼
@@ -83,19 +104,10 @@ Trivy Security Scan
 GitHub Container Registry
    │
    ▼
-Terraform
+Automated Deployment
    │
    ▼
-AWS EC2 + RDS
-   │
-   ▼
-Ansible
-   │
-   ▼
-k3s Kubernetes
-   │
-   ▼
-Helm
+Kubernetes / k3s
    │
    ▼
 StatusSphere
@@ -113,6 +125,7 @@ StatusSphere
 | **Configuration** | Ansible | Configure EC2 and install k3s |
 | **Orchestration** | Kubernetes / k3s | Run application workloads |
 | **Packaging** | Helm | Manage Kubernetes deployments |
+| **Deployment** | GitHub Actions | Roll out new images automatically |
 
 ---
 
@@ -124,19 +137,23 @@ StatusSphere
 * **Frontend:** React, TypeScript, Nginx
 
 ### Cloud & DevOps
-* **Cloud Infrastructure:** AWS EC2, AWS RDS
-* **IaC & Configuration:** Terraform, Ansible
-* **Container & Orchestration:** Docker, Docker Compose, Kubernetes / k3s, Helm
-* **CI/CD & Security:** GitHub Actions, Trivy, GitHub Container Registry (GHCR)
+* **Cloud:** AWS EC2, AWS RDS
+* **IaC:** Terraform
+* **Configuration:** Ansible
+* **Containers:** Docker, Docker Compose
+* **Orchestration:** Kubernetes / k3s
+* **Packaging:** Helm
+* **CI/CD:** GitHub Actions
+* **Security:** Trivy
+* **Registry:** GitHub Container Registry
 
 ### Observability
-* Prometheus metrics endpoint
 * Prometheus
 * Grafana
 * Loki
-* Alertmanager
+* Custom application metrics
 
-> *Note: The full Prometheus/Grafana/Loki/Alertmanager stack is currently in progress.*
+> *Alertmanager and permanent log-shipping agents are intentionally out of scope due to resource constraints on the single-node environment.*
 
 ---
 
@@ -151,9 +168,8 @@ Terraform provisions:
 * S3-based remote Terraform state
 * DynamoDB state locking
 
-RDS is configured as a private database and is accessible only from the application infrastructure.
-
-Ansible configures the EC2 host and bootstraps a lightweight k3s Kubernetes cluster.
+*RDS is private and accessible only from the application infrastructure.*
+*Ansible configures the EC2 host and bootstraps the k3s Kubernetes cluster.*
 
 ---
 
@@ -163,12 +179,12 @@ StatusSphere runs in a dedicated Kubernetes namespace with:
 * Backend Deployment
 * Frontend Deployment
 * Kubernetes Services
-* Readiness probes
-* Liveness probes
+* Readiness and liveness probes
 * Resource requests and limits
 * External database credentials Secret
+* Traefik Ingress
 
-The Helm chart manages application configuration including:
+Helm manages:
 * Container image repositories and tags
 * Replica counts
 * Resource limits
@@ -181,7 +197,7 @@ The Helm chart manages application configuration including:
 
 ## 🔐 Security & Reliability
 
-The project implements several production-style practices:
+The project implements:
 * Trivy vulnerability scanning before image publication
 * Least-privilege AWS IAM access
 * Private RDS database
@@ -191,6 +207,7 @@ The project implements several production-style practices:
 * Kubernetes readiness and liveness probes
 * Rolling application updates
 * Container health checks
+* Automated deployment rollback on failure
 
 ---
 
@@ -200,7 +217,7 @@ The project implements several production-style practices:
 * Docker
 * Docker Compose
 
-### Start the complete local stack:
+### Start the complete local stack
 ```bash
 docker compose up --build
 ```
@@ -224,17 +241,17 @@ curl http://localhost:8000/metrics
 
 ## 📁 Project Structure
 
-```
+```text
 status-sphere-platform/
-├── backend/              # FastAPI application
-├── frontend/             # React + TypeScript application
-├── infra/                # Terraform AWS infrastructure
-│   └── bootstrap/        # Remote-state backend
-├── ansible/              # EC2 / k3s configuration
-├── k8s/                  # Kubernetes manifests
-├── helm/                 # Helm chart
-├── .github/workflows/    # CI/CD workflows
-└── docker-compose.yml    # Local development
+├── backend/               # FastAPI application
+├── frontend/              # React + TypeScript application
+├── infra/                 # Terraform AWS infrastructure
+│   └── bootstrap/         # Remote-state backend
+├── ansible/               # EC2 / k3s configuration
+├── k8s/                   # Kubernetes manifests
+├── helm/                  # Helm chart
+├── .github/workflows/     # CI/CD workflows
+└── docker-compose.yml     # Local development
 ```
 
 ---
@@ -244,40 +261,41 @@ status-sphere-platform/
 ### ✅ Completed
 * FastAPI monitoring backend
 * React monitoring dashboard
+* Shareable workspace system
 * PostgreSQL persistence
 * Docker containerization
-* Docker Compose setup
-* GitHub Actions CI
+* GitHub Actions CI/CD
 * Trivy vulnerability scanning
 * GHCR image publishing
 * Terraform AWS infrastructure
 * Ansible-based k3s configuration
 * Kubernetes deployment
 * Helm install, upgrade, and rollback
-
-### 🔄 In Progress
-* Prometheus/Grafana/Alertmanager observability stack
-
-### 📋 Planned
-* Loki log aggregation
-* Production alerting rules
+* Prometheus metrics
 * Grafana dashboards
-* Fully automated image-to-Kubernetes deployment
+* Loki log aggregation
+* Automated Kubernetes deployments
+* Public AWS deployment
+
+### 📋 Deliberately Out of Scope
+* Alertmanager
+* Permanent log-shipping agent
+* HTTPS/TLS without a custom domain
 
 ---
 
 ## 🎯 Why StatusSphere?
 
-StatusSphere was built to demonstrate the complete lifecycle of a cloud-native application:
+StatusSphere demonstrates the complete lifecycle of a cloud-native application:
 
-```
+```text
 Develop ──> Test ──> Secure ──> Containerize ──> Provision ──> Configure ──> Deploy ──> Monitor
 ```
 
-The goal is not simply to demonstrate individual DevOps tools, but to show how they work together to create a repeatable, secure, and reliable application delivery workflow.
+The goal is to demonstrate how these technologies work together to build a repeatable, secure, observable, and reliable application delivery workflow.
 
 ---
 
-## Author
+## 👤 Author
 
 **Shreeya Sahai**
