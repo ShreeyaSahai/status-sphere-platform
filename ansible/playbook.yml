@@ -55,6 +55,10 @@
         group: ubuntu
         mode: "0600"
 
+    - name: Capture this host's public IP before delegating to localhost
+      set_fact:
+        statussphere_public_ip: "{{ ansible_host }}"
+
     - name: Fetch k3s kubeconfig content
       slurp:
         src: /etc/rancher/k3s/k3s.yaml
@@ -66,7 +70,7 @@
       copy:
         content: >-
           {{ (kubeconfig_raw.content | b64decode)
-             | replace('127.0.0.1', ansible_host)
-             | replace('localhost', ansible_host) }}
+             | replace('127.0.0.1', statussphere_public_ip)
+             | replace('localhost', statussphere_public_ip) }}
         dest: "{{ playbook_dir }}/../kubeconfig-statussphere.yaml"
         mode: "0600"
