@@ -57,14 +57,14 @@ jobs:
 
             echo "Rolling out backend to ${SHA}..."
             kubectl -n statussphere set image deployment/statussphere-backend \
-              backend=ghcr.io/shreeyasahai/status-sphere-platform-backend:\${SHA}
+              backend=ghcr.io/shreeyasahai/status-sphere-platform-backend:${SHA}
 
             echo "Waiting for backend rollout (this also confirms /health passes readiness)..."
             kubectl -n statussphere rollout status deployment/statussphere-backend --timeout=240s
 
             echo "Backend healthy. Rolling out frontend to ${SHA}..."
             kubectl -n statussphere set image deployment/statussphere-frontend \
-              frontend=ghcr.io/shreeyasahai/status-sphere-platform-frontend:\${SHA}
+              frontend=ghcr.io/shreeyasahai/status-sphere-platform-frontend:${SHA}
 
             echo "Waiting for frontend rollout..."
             kubectl -n statussphere rollout status deployment/statussphere-frontend --timeout=240s
