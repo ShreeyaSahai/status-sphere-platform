@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from statussphere.models.environment import Environment
     from statussphere.models.health_check import HealthCheck
     from statussphere.models.incident import Incident
+    from statussphere.models.workspace import Workspace
 
 
 class Application(Base, UUIDMixin, TimestampMixin):
@@ -29,10 +30,20 @@ class Application(Base, UUIDMixin, TimestampMixin):
 
     __table_args__ = (
         UniqueConstraint(
+            "workspace_id",
             "environment_id",
             "slug",
-            name="uq_environment_application_slug",
+            name="uq_workspace_environment_application_slug",
         ),
+    )
+
+    workspace_id: Mapped[UUID] = mapped_column(
+        ForeignKey(
+            "workspaces.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+        index=True,
     )
 
     environment_id: Mapped[UUID] = mapped_column(
@@ -94,6 +105,10 @@ class Application(Base, UUIDMixin, TimestampMixin):
         default=True,
         nullable=False,
         index=True,
+    )
+
+    workspace: Mapped[Workspace] = relationship(
+        back_populates="applications",
     )
 
     environment: Mapped[Environment] = relationship(

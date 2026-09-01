@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Plus, 
@@ -19,10 +19,14 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { useRefresh } from '@/context';
 
 export const ApplicationsPage: React.FC = () => {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { pollingInterval } = useRefresh();
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [appToDeactivate, setAppToDeactivate] = useState<Application | null>(null);
+
+  const basePath = workspaceId ? `/w/${workspaceId}` : '';
 
   // Fetch applications
   const {
@@ -32,17 +36,21 @@ export const ApplicationsPage: React.FC = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['applications'],
-    queryFn: getApplications,
+    queryKey: ['applications', workspaceId],
+    queryFn: () => (workspaceId ? getApplications(workspaceId) : Promise.resolve([])),
+    enabled: !!workspaceId,
     refetchInterval: pollingInterval > 0 ? pollingInterval : false,
     refetchIntervalInBackground: false,
   });
 
   // Deactivate mutation
   const deactivateMutation = useMutation({
-    mutationFn: (id: string) => deleteApplication(id),
+    mutationFn: (id: string) => {
+      if (!workspaceId) throw new Error('Missing workspace ID');
+      return deleteApplication(workspaceId, id);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['applications'] });
+      queryClient.invalidateQueries({ queryKey: ['applications', workspaceId] });
       setAppToDeactivate(null);
     },
   });
@@ -54,7 +62,7 @@ export const ApplicationsPage: React.FC = () => {
         title="Applications"
         subtitle="Manage and monitor your services and endpoints"
         breadcrumbs={[
-          { label: 'Overview', to: '/' },
+          { label: 'Overview', to: basePath || '/' },
           { label: 'Applications' },
         ]}
         action={
@@ -64,7 +72,7 @@ export const ApplicationsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
-                className={`p-1.5 rounded-lg transition-colors ${
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                   viewMode === 'table'
                     ? 'bg-neutral-100 text-neutral-900 shadow-subtle'
                     : 'text-neutral-400 hover:text-neutral-700'
@@ -77,7 +85,7 @@ export const ApplicationsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg transition-colors ${
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                   viewMode === 'grid'
                     ? 'bg-neutral-100 text-neutral-900 shadow-subtle'
                     : 'text-neutral-400 hover:text-neutral-700'
@@ -90,7 +98,7 @@ export const ApplicationsPage: React.FC = () => {
             </div>
 
             <Link
-              to="/applications/new"
+              to={`${basePath}/applications/new`}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg transition-colors shadow-subtle"
             >
               <Plus className="w-4 h-4" />
@@ -114,12 +122,12 @@ export const ApplicationsPage: React.FC = () => {
       ) : applications.length === 0 ? (
         <EmptyState
           title="No applications configured"
-          description="There are currently no active applications configured for monitoring."
+          description="There are currently no active applications configured for monitoring in this workspace."
           icon={<Radio className="w-5 h-5 text-neutral-400" />}
           action={{
             label: 'Register application',
             onClick: () => {
-              window.location.href = '/applications/new';
+              navigate(`${basePath}/applications/new`);
             },
           }}
         />

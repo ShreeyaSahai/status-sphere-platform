@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useParams } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Server, 
@@ -15,21 +15,27 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const basePath = workspaceId ? `/w/${workspaceId}` : '';
+
   const navItems = [
     {
-      to: '/',
+      to: basePath,
       label: 'Overview',
       icon: LayoutDashboard,
+      end: true,
     },
     {
-      to: '/applications',
+      to: `${basePath}/applications`,
       label: 'Applications',
       icon: Server,
+      end: false,
     },
     {
-      to: '/incidents',
+      to: `${basePath}/incidents`,
       label: 'Incidents',
       icon: AlertCircle,
+      end: false,
     },
   ];
 
@@ -53,7 +59,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           {/* Logo & Mobile Close */}
           <div className="flex items-center justify-between w-full px-2 lg:px-0 lg:justify-center">
             <NavLink
-              to="/"
+              to={basePath || '/'}
               onClick={onClose}
               className="flex items-center gap-3 group focus:outline-none"
               title="StatusSphere"
@@ -77,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-lg hover:bg-neutral-100 lg:hidden"
+                className="p-1.5 text-neutral-400 hover:text-neutral-700 rounded-lg hover:bg-neutral-100 lg:hidden cursor-pointer"
                 aria-label="Close navigation"
               >
                 <X className="w-4 h-4" />
@@ -88,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           {/* Quick Add CTA */}
           <div className="w-full flex justify-center px-1">
             <NavLink
-              to="/applications/new"
+              to={`${basePath}/applications/new`}
               onClick={onClose}
               className={`flex items-center justify-center w-9 h-9 rounded-xl bg-neutral-900 text-white hover:bg-neutral-800 transition-colors shadow-subtle focus:outline-none ${
                 isOpen ? '!w-full !justify-start !px-3 gap-2.5 text-xs font-medium h-9' : ''
@@ -110,7 +116,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  end={item.to === '/'}
+                  end={item.end}
                   onClick={onClose}
                   className={({ isActive }) =>
                     `group relative flex items-center justify-center w-9 h-9 rounded-xl text-sm transition-all duration-150 focus:outline-none ${

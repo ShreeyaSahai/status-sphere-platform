@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
-import { Menu, RefreshCw, ChevronDown } from 'lucide-react';
+import { Menu, RefreshCw, ChevronDown, Link2, Check } from 'lucide-react';
 import { useRefresh, type PollingInterval } from '@/context';
 import { getSystemHealth } from '@/api/health';
-import { getApplications, getApplicationIncidents, getApplicationHealthChecks } from '@/api/applications';
+import { 
+  getApplications, 
+  getApplicationIncidents, 
+  getApplicationHealthChecks 
+} from '@/api/applications';
 import { getLatestCheck } from '@/utils/metrics';
 import { formatRelativeTime } from '@/utils/formatters';
 
@@ -12,6 +17,9 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const [copied, setCopied] = useState(false);
+
   const {
     pollingInterval,
     setPollingInterval,
@@ -29,33 +37,34 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
     retry: 1,
   });
 
-  // Query applications
+  // Query applications for this workspace
   const { data: applications = [] } = useQuery({
-    queryKey: ['applications'],
-    queryFn: getApplications,
+    queryKey: ['applications', workspaceId],
+    queryFn: () => (workspaceId ? getApplications(workspaceId) : Promise.resolve([])),
+    enabled: !!workspaceId,
     refetchInterval: pollingInterval > 0 ? pollingInterval : false,
     refetchIntervalInBackground: false,
   });
 
-  // Query incidents for all applications
+  // Query incidents for all applications in this workspace
   const incidentQueries = useQueries({
     queries: applications.map((app) => ({
-      queryKey: ['incidents', app.id],
-      queryFn: () => getApplicationIncidents(app.id),
+      queryKey: ['incidents', workspaceId, app.id],
+      queryFn: () => (workspaceId ? getApplicationIncidents(workspaceId, app.id) : Promise.resolve([])),
       refetchInterval: pollingInterval > 0 ? pollingInterval : false,
       refetchIntervalInBackground: false,
-      enabled: applications.length > 0,
+      enabled: !!workspaceId && applications.length > 0,
     })),
   });
 
-  // Query health checks for all applications
+  // Query health checks for all applications in this workspace
   const healthCheckQueries = useQueries({
     queries: applications.map((app) => ({
-      queryKey: ['health-checks', app.id],
-      queryFn: () => getApplicationHealthChecks(app.id),
+      queryKey: ['health-checks', workspaceId, app.id],
+      queryFn: () => (workspaceId ? getApplicationHealthChecks(workspaceId, app.id) : Promise.resolve([])),
       refetchInterval: pollingInterval > 0 ? pollingInterval : false,
       refetchIntervalInBackground: false,
-      enabled: applications.length > 0,
+      enabled: !!workspaceId && applications.length > 0,
     })),
   });
 
@@ -74,6 +83,19 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   const hasActiveIncidents = openIncidents.length > 0;
   const hasDownServices = currentlyDownServices.length > 0;
 
+  const handleCopyLink = async () => {
+    if (!workspaceId) return;
+    const url = `${window.location.origin}/w/${workspaceId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+      setCopied(false);
+    }
+  };
+
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-14 px-5 md:px-8 border-b border-[#EAEAEA] bg-white/80 backdrop-blur-md">
       {/* Left side: mobile toggle & dynamic system status indicator */}
@@ -81,7 +103,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
         <button
           type="button"
           onClick={onMenuToggle}
-          className="p-1.5 text-neutral-500 hover:text-neutral-900 rounded-lg hover:bg-neutral-100 lg:hidden focus:outline-none"
+          className="p-1.5 text-neutral-500 hover:text-neutral-900 rounded-lg hover:bg-neutral-100 lg:hidden focus:outline-none cursor-pointer"
           aria-label="Toggle navigation menu"
         >
           <Menu className="w-5 h-5" />
@@ -125,8 +147,34 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
         </div>
       </div>
 
-      {/* Right side: Auto-refresh selector, Refresh button */}
+      {/* Right side: Copy Link button, Auto-refresh selector, Refresh button */}
       <div className="flex items-center gap-2 sm:gap-2.5">
+        {/* Copy Link Button */}
+        {workspaceId && (
+          <button
+            type="button"
+            onClick={handleCopyLink}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-all border cursor-pointer ${
+              copied
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-subtle'
+                : 'bg-white hover:bg-neutral-50 text-neutral-700 border-[#EAEAEA] shadow-subtle'
+            }`}
+            title="Copy permanent shareable workspace link"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="font-medium">Link copied!</span>
+              </>
+            ) : (
+              <>
+                <Link2 className="w-3.5 h-3.5 text-neutral-500" />
+                <span>Copy link</span>
+              </>
+            )}
+          </button>
+        )}
+
         {/* Polling Interval Selector */}
         <div className="relative inline-flex items-center">
           <select
@@ -148,7 +196,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
           type="button"
           onClick={() => refreshAll()}
           disabled={isRefreshing}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-neutral-700 bg-white hover:bg-neutral-50 border border-[#EAEAEA] rounded-lg transition-colors shadow-subtle active:scale-95 disabled:opacity-50"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-neutral-700 bg-white hover:bg-neutral-50 border border-[#EAEAEA] rounded-lg transition-colors shadow-subtle active:scale-95 disabled:opacity-50 cursor-pointer"
           title={`Last updated ${formatRelativeTime(lastRefreshedAt.toISOString())}`}
         >
           <RefreshCw

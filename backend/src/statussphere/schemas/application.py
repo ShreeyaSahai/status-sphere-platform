@@ -1,7 +1,8 @@
-from typing import Annotated
+import json
+from typing import Annotated, Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
 from statussphere.models.enums import HttpMethod
 
@@ -76,6 +77,8 @@ class ApplicationResponse(BaseModel):
 
     id: UUID
 
+    workspace_id: UUID
+
     environment_id: UUID
 
     name: str
@@ -95,3 +98,15 @@ class ApplicationResponse(BaseModel):
     tags: list[str]
 
     is_active: bool
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def parse_tags(cls, v: Any) -> list[str]:
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return [str(item) for item in parsed]
+            except Exception:
+                return [v]
+        return v or []

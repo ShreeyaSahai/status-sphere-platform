@@ -48,7 +48,7 @@ import {
 } from '@/utils/metrics';
 
 export const ApplicationDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { workspaceId, id } = useParams<{ workspaceId: string; id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { pollingInterval } = useRefresh();
@@ -56,15 +56,18 @@ export const ApplicationDetailPage: React.FC = () => {
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'metrics' | 'incidents' | 'logs'>('metrics');
 
-  // Fetch applications list to find this application
+  const basePath = workspaceId ? `/w/${workspaceId}` : '';
+
+  // Fetch applications list to find this application in the workspace
   const {
     data: applications = [],
     isLoading: isLoadingApps,
     isError: isAppsError,
     error: appsError,
   } = useQuery({
-    queryKey: ['applications'],
-    queryFn: getApplications,
+    queryKey: ['applications', workspaceId],
+    queryFn: () => (workspaceId ? getApplications(workspaceId) : Promise.resolve([])),
+    enabled: !!workspaceId,
     refetchInterval: pollingInterval > 0 ? pollingInterval : false,
     refetchIntervalInBackground: false,
   });
@@ -75,9 +78,9 @@ export const ApplicationDetailPage: React.FC = () => {
   const {
     data: healthChecks = [],
   } = useQuery({
-    queryKey: ['health-checks', id],
-    queryFn: () => (id ? getApplicationHealthChecks(id) : Promise.resolve([])),
-    enabled: !!id,
+    queryKey: ['health-checks', workspaceId, id],
+    queryFn: () => (workspaceId && id ? getApplicationHealthChecks(workspaceId, id) : Promise.resolve([])),
+    enabled: !!workspaceId && !!id,
     refetchInterval: pollingInterval > 0 ? pollingInterval : false,
     refetchIntervalInBackground: false,
   });
@@ -86,19 +89,22 @@ export const ApplicationDetailPage: React.FC = () => {
   const {
     data: incidents = [],
   } = useQuery({
-    queryKey: ['incidents', id],
-    queryFn: () => (id ? getApplicationIncidents(id) : Promise.resolve([])),
-    enabled: !!id,
+    queryKey: ['incidents', workspaceId, id],
+    queryFn: () => (workspaceId && id ? getApplicationIncidents(workspaceId, id) : Promise.resolve([])),
+    enabled: !!workspaceId && !!id,
     refetchInterval: pollingInterval > 0 ? pollingInterval : false,
     refetchIntervalInBackground: false,
   });
 
   // Deactivate mutation
   const deactivateMutation = useMutation({
-    mutationFn: () => (id ? deleteApplication(id) : Promise.resolve()),
+    mutationFn: () => {
+      if (!workspaceId || !id) throw new Error('Missing ID');
+      return deleteApplication(workspaceId, id);
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['applications'] });
-      navigate('/applications');
+      queryClient.invalidateQueries({ queryKey: ['applications', workspaceId] });
+      navigate(`${basePath}/applications`);
     },
   });
 
@@ -124,11 +130,11 @@ export const ApplicationDetailPage: React.FC = () => {
     return (
       <EmptyState
         title="Application not found"
-        description="The requested service was not found or has been deactivated."
+        description="The requested service was not found or has been deactivated in this workspace."
         icon={<Radio className="w-5 h-5 text-neutral-400" />}
         action={{
           label: 'Back to applications',
-          onClick: () => navigate('/applications'),
+          onClick: () => navigate(`${basePath}/applications`),
         }}
       />
     );
@@ -148,14 +154,14 @@ export const ApplicationDetailPage: React.FC = () => {
       <PageHeader
         title={application.name}
         breadcrumbs={[
-          { label: 'Overview', to: '/' },
-          { label: 'Applications', to: '/applications' },
+          { label: 'Overview', to: basePath || '/' },
+          { label: 'Applications', to: `${basePath}/applications` },
           { label: application.name },
         ]}
         action={
           <div className="flex items-center gap-2.5">
             <Link
-              to={`/applications/${application.id}/edit`}
+              to={`${basePath}/applications/${application.id}/edit`}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-neutral-700 bg-white hover:bg-neutral-50 border border-[#EAEAEA] rounded-lg transition-colors shadow-subtle"
             >
               <Edit3 className="w-3.5 h-3.5 text-neutral-500" />
@@ -164,7 +170,7 @@ export const ApplicationDetailPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsDeactivateModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-rose-600 hover:text-rose-700 bg-white hover:bg-rose-50 border border-[#EAEAEA] rounded-lg transition-colors shadow-subtle"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-rose-600 hover:text-rose-700 bg-white hover:bg-rose-50 border border-[#EAEAEA] rounded-lg transition-colors shadow-subtle cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5 text-rose-500" />
               <span>Deactivate</span>
@@ -279,12 +285,12 @@ export const ApplicationDetailPage: React.FC = () => {
         <UptimeBarStrip healthChecks={healthChecks} maxBars={50} />
       </div>
 
-      {/* Tab Navigation (Metrics / Incidents / Execution Logs) */}
+      {/* Tab Navigation */}
       <div className="flex items-center gap-2 border-b border-[#EAEAEA] pb-0">
         <button
           type="button"
           onClick={() => setActiveTab('metrics')}
-          className={`px-4 py-2.5 text-xs font-medium border-b-2 -mb-[1px] transition-colors flex items-center gap-2 ${
+          className={`px-4 py-2.5 text-xs font-medium border-b-2 -mb-[1px] transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'metrics'
               ? 'border-neutral-900 text-neutral-900 font-semibold'
               : 'border-transparent text-neutral-400 hover:text-neutral-700'
@@ -296,7 +302,7 @@ export const ApplicationDetailPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('incidents')}
-          className={`px-4 py-2.5 text-xs font-medium border-b-2 -mb-[1px] transition-colors flex items-center gap-2 ${
+          className={`px-4 py-2.5 text-xs font-medium border-b-2 -mb-[1px] transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'incidents'
               ? 'border-neutral-900 text-neutral-900 font-semibold'
               : 'border-transparent text-neutral-400 hover:text-neutral-700'
@@ -308,7 +314,7 @@ export const ApplicationDetailPage: React.FC = () => {
         <button
           type="button"
           onClick={() => setActiveTab('logs')}
-          className={`px-4 py-2.5 text-xs font-medium border-b-2 -mb-[1px] transition-colors flex items-center gap-2 ${
+          className={`px-4 py-2.5 text-xs font-medium border-b-2 -mb-[1px] transition-colors flex items-center gap-2 cursor-pointer ${
             activeTab === 'logs'
               ? 'border-neutral-900 text-neutral-900 font-semibold'
               : 'border-transparent text-neutral-400 hover:text-neutral-700'

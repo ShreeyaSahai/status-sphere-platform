@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { 
   Globe, 
   Search, 
@@ -25,6 +25,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
   onDeactivate,
   className = '',
 }) => {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
   const [searchQuery, setSearchQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState<'ALL' | 'GET' | 'HEAD'>('ALL');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -50,6 +51,16 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
     return matchesSearch && matchesMethod && matchesTag;
   });
 
+  const getAppUrl = (app: Application) => {
+    const ws = workspaceId || app.workspace_id;
+    return ws ? `/w/${ws}/applications/${app.id}` : `/applications/${app.id}`;
+  };
+
+  const getAppEditUrl = (app: Application) => {
+    const ws = workspaceId || app.workspace_id;
+    return ws ? `/w/${ws}/applications/${app.id}/edit` : `/applications/${app.id}/edit`;
+  };
+
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Search and Filters bar */}
@@ -68,7 +79,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -114,7 +125,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                 setMethodFilter('ALL');
                 setSelectedTag(null);
               }}
-              className="text-xs font-medium text-neutral-600 hover:text-neutral-900 px-2.5 py-1.5 rounded-lg hover:bg-neutral-100 transition-colors"
+              className="text-xs font-medium text-neutral-600 hover:text-neutral-900 px-2.5 py-1.5 rounded-lg hover:bg-neutral-100 transition-colors cursor-pointer"
             >
               Reset
             </button>
@@ -151,7 +162,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                     {/* Name */}
                     <td className="py-4 px-5">
                       <Link
-                        to={`/applications/${app.id}`}
+                        to={getAppUrl(app)}
                         className="font-semibold text-neutral-900 group-hover:text-neutral-700 transition-colors flex items-center gap-1.5"
                       >
                         <span>{app.name}</span>
@@ -203,14 +214,14 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                     <td className="py-4 px-5 text-right">
                       <div className="inline-flex items-center gap-1">
                         <Link
-                          to={`/applications/${app.id}`}
+                          to={getAppUrl(app)}
                           className="p-1.5 text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors"
                           title="View telemetry and metrics"
                         >
                           <ExternalLink className="w-4 h-4" />
                         </Link>
                         <Link
-                          to={`/applications/${app.id}/edit`}
+                          to={getAppEditUrl(app)}
                           className="p-1.5 text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors"
                           title="Edit configuration"
                         >
@@ -219,7 +230,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                         <button
                           type="button"
                           onClick={() => onDeactivate(app)}
-                          className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                          className="p-1.5 text-neutral-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                           title="Deactivate application"
                         >
                           <Trash2 className="w-4 h-4" />

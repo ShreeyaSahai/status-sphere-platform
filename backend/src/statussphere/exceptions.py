@@ -12,3 +12,7 @@ class ApplicationNotFoundError(StatusSphereError):
 
 class DuplicateApplicationError(StatusSphereError):
     pass
+
+
+class WorkspaceNotFoundError(StatusSphereError):
+    pass

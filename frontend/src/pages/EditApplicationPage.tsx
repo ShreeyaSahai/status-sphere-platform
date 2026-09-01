@@ -11,9 +11,11 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { Radio } from 'lucide-react';
 
 export const EditApplicationPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { workspaceId, id } = useParams<{ workspaceId: string; id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const basePath = workspaceId ? `/w/${workspaceId}` : '';
 
   // Fetch applications to populate existing data
   const {
@@ -22,21 +24,22 @@ export const EditApplicationPage: React.FC = () => {
     isError,
     error,
   } = useQuery({
-    queryKey: ['applications'],
-    queryFn: getApplications,
+    queryKey: ['applications', workspaceId],
+    queryFn: () => (workspaceId ? getApplications(workspaceId) : Promise.resolve([])),
+    enabled: !!workspaceId,
   });
 
   const application: Application | undefined = applications.find((a) => a.id === id);
 
   const updateMutation = useMutation({
     mutationFn: (data: ApplicationUpdate) => {
-      if (!id) throw new Error('Missing application ID');
-      return updateApplication(id, data);
+      if (!workspaceId || !id) throw new Error('Missing workspace or application ID');
+      return updateApplication(workspaceId, id, data);
     },
     onSuccess: (updatedApp) => {
-      queryClient.invalidateQueries({ queryKey: ['applications'] });
-      queryClient.invalidateQueries({ queryKey: ['health-checks', updatedApp.id] });
-      navigate(`/applications/${updatedApp.id}`);
+      queryClient.invalidateQueries({ queryKey: ['applications', workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ['health-checks', workspaceId, updatedApp.id] });
+      navigate(`${basePath}/applications/${updatedApp.id}`);
     },
   });
 
@@ -71,7 +74,7 @@ export const EditApplicationPage: React.FC = () => {
         icon={<Radio className="w-5 h-5 text-neutral-400" />}
         action={{
           label: 'Back to applications',
-          onClick: () => navigate('/applications'),
+          onClick: () => navigate(`${basePath}/applications`),
         }}
       />
     );
@@ -83,9 +86,9 @@ export const EditApplicationPage: React.FC = () => {
         title={`Edit ${application.name}`}
         subtitle="Update health check target URL, interval, expected response codes, or status"
         breadcrumbs={[
-          { label: 'Overview', to: '/' },
-          { label: 'Applications', to: '/applications' },
-          { label: application.name, to: `/applications/${application.id}` },
+          { label: 'Overview', to: basePath || '/' },
+          { label: 'Applications', to: `${basePath}/applications` },
+          { label: application.name, to: `${basePath}/applications/${application.id}` },
           { label: 'Edit' },
         ]}
       />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { 
   Server, 
@@ -10,7 +10,11 @@ import {
   Activity,
   Radio
 } from 'lucide-react';
-import { getApplications, getApplicationHealthChecks, getApplicationIncidents } from '@/api/applications';
+import { 
+  getApplications, 
+  getApplicationHealthChecks, 
+  getApplicationIncidents 
+} from '@/api/applications';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { MetricCard } from '@/components/common/MetricCard';
 import { ApplicationCard } from '@/components/applications/ApplicationCard';
@@ -20,14 +24,23 @@ import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { EmptyState } from '@/components/common/EmptyState';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { useRefresh } from '@/context';
-import { calculateUptimePercentage, calculateAverageLatency, calculateP95Latency, getLatestCheck } from '@/utils/metrics';
+import { 
+  calculateUptimePercentage, 
+  calculateAverageLatency, 
+  calculateP95Latency, 
+  getLatestCheck 
+} from '@/utils/metrics';
 import { formatLatency, formatRelativeTime } from '@/utils/formatters';
 
 export const DashboardPage: React.FC = () => {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const navigate = useNavigate();
   const { pollingInterval } = useRefresh();
   const [hoveredPointIndex, setHoveredPointIndex] = useState<number | null>(null);
 
-  // Fetch all active applications
+  const basePath = workspaceId ? `/w/${workspaceId}` : '';
+
+  // Fetch all active applications in this workspace
   const {
     data: applications = [],
     isLoading: isLoadingApps,
@@ -35,8 +48,9 @@ export const DashboardPage: React.FC = () => {
     error: appsError,
     refetch: refetchApps,
   } = useQuery({
-    queryKey: ['applications'],
-    queryFn: getApplications,
+    queryKey: ['applications', workspaceId],
+    queryFn: () => (workspaceId ? getApplications(workspaceId) : Promise.resolve([])),
+    enabled: !!workspaceId,
     refetchInterval: pollingInterval > 0 ? pollingInterval : false,
     refetchIntervalInBackground: false,
   });
@@ -44,22 +58,22 @@ export const DashboardPage: React.FC = () => {
   // Fetch health checks for all applications in parallel
   const healthCheckQueries = useQueries({
     queries: applications.map((app) => ({
-      queryKey: ['health-checks', app.id],
-      queryFn: () => getApplicationHealthChecks(app.id),
+      queryKey: ['health-checks', workspaceId, app.id],
+      queryFn: () => (workspaceId ? getApplicationHealthChecks(workspaceId, app.id) : Promise.resolve([])),
       refetchInterval: pollingInterval > 0 ? pollingInterval : false,
       refetchIntervalInBackground: false,
-      enabled: applications.length > 0,
+      enabled: !!workspaceId && applications.length > 0,
     })),
   });
 
   // Fetch incidents for all applications in parallel
   const incidentQueries = useQueries({
     queries: applications.map((app) => ({
-      queryKey: ['incidents', app.id],
-      queryFn: () => getApplicationIncidents(app.id),
+      queryKey: ['incidents', workspaceId, app.id],
+      queryFn: () => (workspaceId ? getApplicationIncidents(workspaceId, app.id) : Promise.resolve([])),
       refetchInterval: pollingInterval > 0 ? pollingInterval : false,
       refetchIntervalInBackground: false,
-      enabled: applications.length > 0,
+      enabled: !!workspaceId && applications.length > 0,
     })),
   });
 
@@ -85,11 +99,7 @@ export const DashboardPage: React.FC = () => {
     return latestCheck?.status === 'DOWN';
   });
 
-  // Fleet health status:
-  // - If active incidents exist: 'OPEN'
-  // - Else if any service's latest check is DOWN: 'DOWN'
-  // - Else if historical uptime is degraded (< 99%): 'DEGRADED'
-  // - Else: 'UP'
+  // Fleet health status
   const fleetHealthStatus = openIncidentsWithApp.length > 0
     ? 'OPEN'
     : currentlyDownServices.length > 0
@@ -172,7 +182,7 @@ export const DashboardPage: React.FC = () => {
         subtitle="Real-time service health and fleet performance"
         action={
           <Link
-            to="/applications/new"
+            to={`${basePath}/applications/new`}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-white bg-neutral-900 hover:bg-neutral-800 rounded-lg transition-colors shadow-subtle"
           >
             <Plus className="w-4 h-4" />
@@ -184,7 +194,7 @@ export const DashboardPage: React.FC = () => {
       {/* Global Open Incidents Alert Banner */}
       <IncidentBanner openIncidents={openIncidentsWithApp} />
 
-      {/* Asymmetric Editorial Overview Section */}
+      {/* Overview Grid Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Large Primary Fleet Health Card */}
         <div className="lg:col-span-7 xl:col-span-8 rounded-2xl border border-[#EAEAEA] bg-white p-6 sm:p-7 shadow-card flex flex-col justify-between relative overflow-hidden">
@@ -304,7 +314,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Compact Supporting Metrics (Right Column) */}
+        {/* Compact Supporting Metrics */}
         <div className="lg:col-span-5 xl:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3.5">
           <MetricCard
             label="Monitored services"
@@ -346,7 +356,7 @@ export const DashboardPage: React.FC = () => {
             </span>
           </div>
           <Link
-            to="/applications"
+            to={`${basePath}/applications`}
             className="text-xs font-medium text-neutral-600 hover:text-neutral-900 flex items-center gap-1 transition-colors"
           >
             <span>View all</span>
@@ -362,7 +372,7 @@ export const DashboardPage: React.FC = () => {
             action={{
               label: 'Register application',
               onClick: () => {
-                window.location.href = '/applications/new';
+                navigate(`${basePath}/applications/new`);
               },
             }}
           />

@@ -4,4 +4,5 @@ dist
 .gitignore
 .env
 .env.*
+!.env.production
 README.md

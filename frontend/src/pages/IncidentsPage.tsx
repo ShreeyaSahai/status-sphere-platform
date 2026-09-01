@@ -1,4 +1,5 @@
 import React from 'react';
+import { useParams } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { AlertCircle, CheckCircle2, History } from 'lucide-react';
 import { getApplications, getApplicationIncidents } from '@/api/applications';
@@ -10,9 +11,12 @@ import { ErrorAlert } from '@/components/common/ErrorAlert';
 import { useRefresh } from '@/context';
 
 export const IncidentsPage: React.FC = () => {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
   const { pollingInterval } = useRefresh();
 
-  // Fetch applications
+  const basePath = workspaceId ? `/w/${workspaceId}` : '';
+
+  // Fetch applications for this workspace
   const {
     data: applications = [],
     isLoading: isLoadingApps,
@@ -20,20 +24,21 @@ export const IncidentsPage: React.FC = () => {
     error: appsError,
     refetch,
   } = useQuery({
-    queryKey: ['applications'],
-    queryFn: getApplications,
+    queryKey: ['applications', workspaceId],
+    queryFn: () => (workspaceId ? getApplications(workspaceId) : Promise.resolve([])),
+    enabled: !!workspaceId,
     refetchInterval: pollingInterval > 0 ? pollingInterval : false,
     refetchIntervalInBackground: false,
   });
 
-  // Fetch incidents for each application
+  // Fetch incidents for each application in this workspace
   const incidentQueries = useQueries({
     queries: applications.map((app) => ({
-      queryKey: ['incidents', app.id],
-      queryFn: () => getApplicationIncidents(app.id),
+      queryKey: ['incidents', workspaceId, app.id],
+      queryFn: () => (workspaceId ? getApplicationIncidents(workspaceId, app.id) : Promise.resolve([])),
       refetchInterval: pollingInterval > 0 ? pollingInterval : false,
       refetchIntervalInBackground: false,
-      enabled: applications.length > 0,
+      enabled: !!workspaceId && applications.length > 0,
     })),
   });
 
@@ -88,7 +93,7 @@ export const IncidentsPage: React.FC = () => {
         title="Incidents"
         subtitle="Service downtime events and resolution history"
         breadcrumbs={[
-          { label: 'Overview', to: '/' },
+          { label: 'Overview', to: basePath || '/' },
           { label: 'Incidents' },
         ]}
       />

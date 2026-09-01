@@ -6,8 +6,14 @@ export type IncidentStatus = 'OPEN' | 'RESOLVED';
 
 export type EnvironmentSlug = 'production' | 'staging' | 'development';
 
+export interface Workspace {
+  id: string;
+  created_at: string;
+}
+
 export interface Application {
   id: string;
+  workspace_id: string;
   environment_id: string;
   name: string;
   slug: string;

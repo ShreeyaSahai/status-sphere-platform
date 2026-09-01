@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpRight, AlertTriangle, Radio } from 'lucide-react';
 import type { Application } from '@/types/api';
@@ -20,20 +20,24 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
   application,
   className = '',
 }) => {
+  const { workspaceId } = useParams<{ workspaceId: string }>();
+  const wsId = workspaceId || application.workspace_id;
   const { pollingInterval } = useRefresh();
 
   // Query health checks for this app
   const { data: healthChecks = [] } = useQuery({
-    queryKey: ['health-checks', application.id],
-    queryFn: () => getApplicationHealthChecks(application.id),
+    queryKey: ['health-checks', wsId, application.id],
+    queryFn: () => (wsId ? getApplicationHealthChecks(wsId, application.id) : Promise.resolve([])),
+    enabled: !!wsId,
     refetchInterval: pollingInterval > 0 ? pollingInterval : false,
     refetchIntervalInBackground: false,
   });
 
   // Query incidents for this app
   const { data: incidents = [] } = useQuery({
-    queryKey: ['incidents', application.id],
-    queryFn: () => getApplicationIncidents(application.id),
+    queryKey: ['incidents', wsId, application.id],
+    queryFn: () => (wsId ? getApplicationIncidents(wsId, application.id) : Promise.resolve([])),
+    enabled: !!wsId,
     refetchInterval: pollingInterval > 0 ? pollingInterval : false,
     refetchIntervalInBackground: false,
   });
@@ -47,6 +51,8 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
   // Last 24 checks for micro sparkline (chronological oldest to newest)
   const microChecks = [...healthChecks].slice(0, 24).reverse();
 
+  const detailUrl = wsId ? `/w/${wsId}/applications/${application.id}` : `/applications/${application.id}`;
+
   return (
     <div
       className={`group rounded-2xl border border-[#EAEAEA] hover:border-neutral-300 bg-white p-5 sm:p-6 shadow-card hover:shadow-card-hover transition-all duration-150 flex flex-col justify-between ${className}`}
@@ -59,7 +65,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
               <Radio className="w-4 h-4" />
             </div>
             <div className="min-w-0">
-              <Link to={`/applications/${application.id}`} className="block">
+              <Link to={detailUrl} className="block">
                 <h3 className="text-sm sm:text-base font-semibold text-neutral-900 group-hover:text-neutral-700 transition-colors truncate">
                   {application.name}
                 </h3>
@@ -74,7 +80,7 @@ export const ApplicationCard: React.FC<ApplicationCardProps> = ({
           <div className="flex items-center gap-2 shrink-0">
             <StatusBadge status={openIncident ? 'OPEN' : status} size="sm" />
             <Link
-              to={`/applications/${application.id}`}
+              to={detailUrl}
               className="text-neutral-400 hover:text-neutral-900 transition-colors p-1"
               aria-label={`View ${application.name} details`}
             >

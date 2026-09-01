@@ -8,7 +8,7 @@ from statussphere.models.environment import Environment
 
 
 class ApplicationRepository:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
     async def get_environment_by_slug(
@@ -16,21 +16,21 @@ class ApplicationRepository:
         slug: str,
     ) -> Environment | None:
         result = await self.session.execute(select(Environment).where(Environment.slug == slug))
-
         return result.scalar_one_or_none()
 
     async def get_by_slug(
         self,
+        workspace_id: UUID,
         environment_id: UUID,
         slug: str,
     ) -> Application | None:
         result = await self.session.execute(
             select(Application).where(
+                Application.workspace_id == workspace_id,
                 Application.environment_id == environment_id,
                 Application.slug == slug,
             )
         )
-
         return result.scalar_one_or_none()
 
     async def create(
@@ -38,11 +38,8 @@ class ApplicationRepository:
         application: Application,
     ) -> Application:
         self.session.add(application)
-
         await self.session.commit()
-
         await self.session.refresh(application)
-
         return application
 
     async def get_by_id(
@@ -52,18 +49,45 @@ class ApplicationRepository:
         result = await self.session.execute(
             select(Application).where(Application.id == application_id)
         )
-
         return result.scalar_one_or_none()
 
-    async def list(
+    async def get_by_id_in_workspace(
         self,
+        workspace_id: UUID,
+        application_id: UUID,
+    ) -> Application | None:
+        result = await self.session.execute(
+            select(Application).where(
+                Application.workspace_id == workspace_id,
+                Application.id == application_id,
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def list_by_workspace(
+        self,
+        workspace_id: UUID,
     ) -> list[Application]:
         result = await self.session.execute(
             select(Application)
-            .where(Application.is_active.is_(True))
+            .where(
+                Application.workspace_id == workspace_id,
+                Application.is_active.is_(True),
+            )
             .order_by(Application.created_at.desc())
         )
+        return list(result.scalars().all())
 
+    async def list(
+        self,
+        workspace_id: UUID | None = None,
+    ) -> list[Application]:
+        query = select(Application).where(Application.is_active.is_(True))
+        if workspace_id is not None:
+            query = query.where(Application.workspace_id == workspace_id)
+        query = query.order_by(Application.created_at.desc())
+
+        result = await self.session.execute(query)
         return list(result.scalars().all())
 
     async def save(

@@ -3,6 +3,11 @@ from datetime import UTC, datetime
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from statussphere.core.config import settings
+from statussphere.core.metrics import (
+    health_checks_total,
+    incidents_created_total,
+    incidents_resolved_total,
+)
 from statussphere.db.session import AsyncSessionLocal
 from statussphere.models.enums import IncidentStatus
 from statussphere.models.incident import Incident
@@ -10,11 +15,6 @@ from statussphere.repositories.application import ApplicationRepository
 from statussphere.repositories.health_check import HealthCheckRepository
 from statussphere.repositories.incident import IncidentRepository
 from statussphere.services.health_check import HealthCheckService
-from statussphere.core.metrics import (
-    health_checks_total,
-    incidents_created_total,
-    incidents_resolved_total,
-)
 
 
 class MonitoringScheduler:
